@@ -1,0 +1,69 @@
+#Import Necessary Libraries
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import matplotlib.pyplot as 
+
+#Load the Data
+df = pd.read_csv('motor_vehicle_insurance_claims.csv')
+print(df.head())
+
+#Data Preprocessing
+#Handling Missing Values
+categorical_features = ['claim_status', 'rear_brakes_type', 'is_parking_sensors', 'is_parking_camera', 'airbags', 'region_density', 'region_code', 'engine_type', 'fuel_type', 'model']
+numerical_features = ['displacement', 'cylinder', 'max_torque', 'max_power', 'vehicle_age', 'customer_age', 'subscription_length']
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='most_frequent')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+
+#Splitting Data into Training and Testing Sets
+X = df[categorical_features + numerical_features]
+y = df['claim_status']
+label_encoder = LabelEncoder()
+y = label_encoder.fit_transform(y)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+#Building the Model
+model = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', RandomForestClassifier(n_estimators=100, random_state=42))
+])
+
+#Model Evaluation
+y_pred = model.predict(X_test)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
+
+sns.heatmap(confusion_matrix(y_test, y_pred), annot=True, fmt='d', cmap='Blues')
+plt.title('Confusion Matrix')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()
+
+#Model Deployment (Optional)
+import joblib
+
+joblib.dump(model, 'fraud_detection_model.pkl')
+loaded_model = joblib.load('fraud_detection_model.pkl')
+
+new_predictions = loaded_model.predict(X_test)
