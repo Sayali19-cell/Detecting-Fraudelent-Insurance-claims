@@ -1,0 +1,102 @@
+CODE
+1. Import Necessary Libraries
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
+•	Libraries Imported:
+o	Pandas & Numpy: Used for data manipulation and analysis.
+o	Scikit-learn: Provides various tools for model building, including preprocessing, splitting datasets, building pipelines, and evaluating models.
+o	Matplotlib & Seaborn: Used for data visualization, especially for plotting graphs like the confusion matrix.
+2. Load the Data
+df = pd.read_csv('motor_vehicle_insurance_claims.csv')
+print(df.head())
+•	Load Dataset: Reads a CSV file containing motor vehicle insurance claims data into a pandas DataFrame.
+•	Preview Data: Displays the first few rows of the dataset to understand its structure.
+3. Data Preprocessing
+a. Handling Missing Values
+categorical_features = ['claim_status', 'rear_brakes_type', 'is_parking_sensors', 'is_parking_camera', 'airbags', 'region_density', 'region_code', 'engine_type', 'fuel_type', 'model']
+numerical_features = ['displacement', 'cylinder', 'max_torque', 'max_power', 'vehicle_age', 'customer_age', 'subscription_length']
+•	Categorical Features: These are the categorical columns in the dataset that describe different attributes of the vehicles and claims.
+•	Numerical Features: These are the numerical columns that provide quantitative information.
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='most_frequent')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+•	Categorical Transformer: Pipeline to handle missing values and one-hot encoding for categorical features.
+o	SimpleImputer: Fills missing values with the most frequent value in each column.
+o	OneHotEncoder: Converts categorical variables into a format that can be provided to ML algorithms to do a better job in prediction.
+•	Numerical Transformer: Pipeline to handle missing values and standardization for numerical features.
+o	SimpleImputer: Fills missing values with the median of the column.
+o	StandardScaler: Standardizes features by removing the mean and scaling to unit variance.
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ]
+)
+•	ColumnTransformer: Combines both the categorical and numerical transformers into a single preprocessing step, applying the appropriate transformations to the respective columns.
+4. Splitting Data into Training and Testing Sets
+X = df[categorical_features + numerical_features]
+y = df['claim_status']
+
+label_encoder = LabelEncoder()
+y = label_encoder.fit_transform(y)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+•	Features (X): Combines categorical and numerical features.
+•	Target (y): claim_status column, which is assumed to be the target variable.
+•	Label Encoding: Converts categorical labels into numeric form.
+•	Train-Test Split: Splits the data into training (80%) and testing (20%) sets for model evaluation.
+5. Building the Model
+model = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', RandomForestClassifier(n_estimators=100, random_state=42))
+])
+
+model.fit(X_train, y_train)
+•	Pipeline: Combines the preprocessor and the model (RandomForestClassifier) into a single pipeline. This ensures that preprocessing is applied to any input data before model training or prediction.
+•	RandomForestClassifier: An ensemble learning method that builds multiple decision trees and merges them to get a more accurate and stable prediction.
+•	Model Training: Fits the model to the training data.
+6. Model Evaluation
+y_pred = model.predict(X_test)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
+
+sns.heatmap(confusion_matrix(y_test, y_pred), annot=True, fmt='d', cmap='Blues')
+plt.title('Confusion Matrix')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()
+•	Predictions: The trained model makes predictions on the test set.
+•	Evaluation Metrics:
+o	Accuracy: The ratio of correct predictions to the total number of predictions.
+o	Classification Report: Provides precision, recall, f1-score, and support for each class.
+o	Confusion Matrix: A matrix used to evaluate the accuracy of a classification, showing the number of correct and incorrect predictions for each class.
+•	Visualization: Displays the confusion matrix as a heatmap for easy interpretation.
+7. Model Deployment (Optional)
+import joblib
+
+joblib.dump(model, 'fraud_detection_model.pkl')
+loaded_model = joblib.load('fraud_detection_model.pkl')
+
+new_predictions = loaded_model.predict(X_test)
+•	Saving the Model: The trained model is saved as a .pkl file using joblib.
+•	Loading the Model: The model can be loaded later to make predictions on new data.
+8. Integrate with UI/UX
+•	Model Integration: Discusses integrating the model into a web application using frameworks like Flask or Django, where users can input data and get predictions in real time.
+
